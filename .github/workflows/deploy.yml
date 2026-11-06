@@ -1,0 +1,50 @@
+name: Deploy Black Swan Stock Market Game
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      # Only run if code changes in your functions or structural database limits
+      - 'supabase/functions/**'
+      - 'src/types/database.ts'
+      - 'src/lib/constants.ts'
+
+jobs:
+  validate-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Pull repository code into the virtual runner environment
+      - name: Checkout Code Base
+        uses: actions/checkout@v4
+
+      # Step 2: Establish Runtime Node Engine matching your app configuration
+      - name: Setup Node.js Runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Strictly forces Node 20 as specified in package.json
+          cache: 'npm'
+
+      # Step 3: Install Next.js & workspace platform dependencies
+      - name: Clean Install Dependencies
+        run: npm ci
+
+      # Step 4: Run compilation validation gate
+      # Triggers 'tsc --noEmit' to catch broken types before pushing files to production
+      - name: Verify TypeScript Compilation Status
+        run: npm run typecheck
+
+      # Step 5: Initialize the official Supabase executable engine
+      - name: Initialize Supabase CLI Engine
+        uses: supabase/setup-cli@v3
+        with:
+          version: latest
+
+      # Step 6: Sequentially push updated logic parameters to the cloud cluster
+      # Deploys all background cron mechanics: loan-interest, market-sync, and wealth-tax
+      - name: Push Active Edge Functions to Supabase
+        run: |
+          supabase functions deploy --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
