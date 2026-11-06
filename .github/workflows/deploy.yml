@@ -5,10 +5,13 @@ on:
     branches:
       - main
     paths:
-      # Only run if code changes in your functions or structural database limits
+      # Automatically triggers when code changes in functions or structural database types
       - 'supabase/functions/**'
       - 'src/types/database.ts'
       - 'src/lib/constants.ts'
+  
+  # Adds a physical "Run workflow" button in the GitHub UI for manual deployments
+  workflow_dispatch:
 
 jobs:
   validate-and-deploy:
@@ -19,30 +22,30 @@ jobs:
       - name: Checkout Code Base
         uses: actions/checkout@v4
 
-      # Step 2: Establish Runtime Node Engine matching your app configuration
+      # Step 2: Establish Runtime Node Engine matching your application profile
       - name: Setup Node.js Runtime
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Strictly forces Node 20 as specified in package.json
+          node-version: '20' # Matches the >=20.0.0 requirement in package.json
           cache: 'npm'
 
-      # Step 3: Install Next.js & workspace platform dependencies
+      # Step 3: Clean install exact application dependencies tracking package-lock.json
       - name: Clean Install Dependencies
         run: npm ci
 
-      # Step 4: Run compilation validation gate
-      # Triggers 'tsc --noEmit' to catch broken types before pushing files to production
+      # Step 4: Run your compilation validation gate
+      # Triggers 'tsc --noEmit' to catch broken TypeScript structures before production
       - name: Verify TypeScript Compilation Status
         run: npm run typecheck
 
-      # Step 5: Initialize the official Supabase executable engine
+      # Step 5: Initialize the official Supabase engine runner
       - name: Initialize Supabase CLI Engine
         uses: supabase/setup-cli@v3
         with:
           version: latest
 
-      # Step 6: Sequentially push updated logic parameters to the cloud cluster
-      # Deploys all background cron mechanics: loan-interest, market-sync, and wealth-tax
+      # Step 6: Sequentially bundle and push active Edge Functions to the cloud cluster
+      # Deploys: loan-interest, market-sync, and wealth-tax
       - name: Push Active Edge Functions to Supabase
         run: |
           supabase functions deploy --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
