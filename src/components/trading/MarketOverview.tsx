@@ -19,7 +19,7 @@ interface MarketOverviewProps {
   stocks: StockRow[];
   marketEvents?: MarketEventRow[];
   showLeaderboard?: boolean;
-  leaderboard?: UserProfileRow[];
+  leaderboard?: Pick<UserProfileRow, 'username' | 'net_worth' | 'avatar'>[];
 }
 
 // ============================================
