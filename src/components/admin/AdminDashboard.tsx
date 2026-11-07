@@ -421,7 +421,7 @@ export function AdminDashboard({
                       <Badge variant={event.event_type === 'BLACK_SWAN' ? 'destructive' : 'default'}>
                         {event.event_type}
                       </Badge>
-                      <span className="font-semibold">{event.description}</span>
+                      <span className="font-semibold">{typeof event.metadata?.description === 'string' ? event.metadata.description : event.event_type}</span>
                     </div>
                     {typeof event.metadata?.details === 'string' && (
                       <p className="text-sm text-text-muted mt-1">{event.metadata.details}</p>
