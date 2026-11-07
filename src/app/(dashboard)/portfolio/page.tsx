@@ -213,7 +213,7 @@ export default async function PortfolioPage() {
             </div>
           ) : (
             <div className="text-center py-8">
-              <p className="text-text-muted">You don't have any holdings yet.</p>
+              <p className="text-text-muted">You don&apos;t have any holdings yet.</p>
               <p className="text-text-muted mt-2">
                 Visit the <span className="text-primary font-medium">Trading Floor</span> to buy stocks.
               </p>
