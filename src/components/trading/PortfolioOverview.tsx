@@ -44,7 +44,7 @@ export function PortfolioOverview({
   // CALCULATE DERIVED DATA
   // ============================================
 
-  const portfolioValue = externalPortfolioValue ?? useMemo(() => {
+  const calculatedPortfolioValue = useMemo(() => {
     return portfolio.reduce((total, position) => {
       const stock = stocks.find(s => s.ticker === position.ticker);
       if (stock) {
@@ -54,9 +54,12 @@ export function PortfolioOverview({
     }, 0);
   }, [portfolio, stocks]);
 
-  const totalInvested = externalTotalInvested ?? useMemo(() => {
+  const calculatedTotalInvested = useMemo(() => {
     return portfolio.reduce((total, position) => total + position.total_invested, 0);
   }, [portfolio]);
+
+  const portfolioValue = externalPortfolioValue ?? calculatedPortfolioValue;
+  const totalInvested = externalTotalInvested ?? calculatedTotalInvested;
 
   const profitLoss = externalProfitLoss ?? (portfolioValue - totalInvested);
   const profitLossPercent = externalProfitLossPercent ?? (totalInvested > 0 ? (profitLoss / totalInvested) * 100 : 0);
