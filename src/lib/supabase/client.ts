@@ -23,13 +23,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       eventsPerSecond: 10,
     },
   },
-  // Enable global fetch for server components
-  global: {
-    fetch: async (url: string, options: RequestInit = {}) => {
-      const response = await fetch(url, options);
-      return response;
-    },
-  },
 });
 
 // ============================================
@@ -56,18 +49,6 @@ export const createServerSupabaseClient = () => {
     realtime: {
       params: {
         eventsPerSecond: 0,
-      },
-    },
-    // Use server-side fetch
-    global: {
-      fetch: async (url: string, options: RequestInit = {}) => {
-        const response = await fetch(url, {
-          ...options,
-          next: {
-            revalidate: 0, // No cache for Supabase
-          },
-        });
-        return response;
       },
     },
   });
