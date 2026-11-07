@@ -184,9 +184,11 @@ export const signOut = async () => {
  * Update session in cookies
  */
 export const updateSession = async (accessToken: string, refreshToken: string | null) => {
-  const cookieStore = cookies();
+  if (!refreshToken) {
+    return;
+  }
+
   const supabase = createClient();
-  
   await supabase.auth.setSession({
     access_token: accessToken,
     refresh_token: refreshToken,
