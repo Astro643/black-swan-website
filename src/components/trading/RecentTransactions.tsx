@@ -6,7 +6,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { formatCurrency, formatDate, formatRelativeTime, getTransactionTypeLabel, getTransactionTypeColor } from '@/lib/utils';
+import { cn, formatCurrency, formatDate, formatRelativeTime, getTransactionTypeLabel, getTransactionTypeColor } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import type { TransactionRow } from '@/types/database';
