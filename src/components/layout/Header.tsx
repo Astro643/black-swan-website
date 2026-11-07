@@ -5,7 +5,6 @@
 
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn, formatCurrency, formatNumber } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
@@ -67,16 +66,16 @@ export function Header({ user }: HeaderProps) {
           )}
 
           {/* Sign out button */}
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-primary/30 text-primary hover:bg-primary/10"
-            asChild
-          >
-            <Link href="/api/auth?action=signout" method="POST">
+          <form action="/api/auth?action=signout" method="POST">
+            <Button
+              type="submit"
+              variant="outline"
+              size="sm"
+              className="border-primary/30 text-primary hover:bg-primary/10"
+            >
               Sign Out
-            </Link>
-          </Button>
+            </Button>
+          </form>
         </div>
       </div>
     </header>
