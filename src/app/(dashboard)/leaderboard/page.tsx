@@ -284,7 +284,7 @@ export default async function LeaderboardPage() {
                         <span className="font-bold text-text-primary">{tx.ticker}</span>
                       </div>
                       <p className="text-xs text-text-muted">
-                        {formatNumber(tx.shares)} shares @ {formatCurrency(tx.price_per_share)}
+                        {formatNumber(tx.shares ?? 0)} shares @ {formatCurrency(tx.price ?? 0)}
                       </p>
                     </div>
                   </div>
