@@ -100,6 +100,7 @@ export default async function TradingFloorPage() {
           { table: 'market_events' },
           { table: 'user_profiles', event: 'UPDATE', filter: `id=eq.${profile.id}` },
           { table: 'portfolios', event: 'INSERT', filter: `user_id=eq.${profile.id}` },
+          { table: 'portfolios', event: 'UPDATE', filter: `user_id=eq.${profile.id}` },
           { table: 'transactions', event: 'INSERT', filter: `user_id=eq.${profile.id}` },
         ]}
       />
