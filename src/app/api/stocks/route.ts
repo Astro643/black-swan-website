@@ -41,6 +41,25 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const supabase = createServerSupabaseClient();
 
+    // Return one stock when a ticker query parameter is supplied.
+    const requestedTicker = searchParams.get('ticker');
+    if (requestedTicker) {
+      const validatedTicker = GetStockSchema.parse({ ticker: requestedTicker.toUpperCase() });
+      const { data: stock, error: stockError } = await supabase
+        .from('stocks')
+        .select('*')
+        .eq('ticker', validatedTicker.ticker)
+        .maybeSingle();
+
+      if (stockError) {
+        return NextResponse.json(createErrorResponse(stockError.message), { status: 400 });
+      }
+      if (!stock) {
+        return NextResponse.json(createErrorResponse('Stock not found'), { status: 404 });
+      }
+      return NextResponse.json(createSuccessResponse(stock));
+    }
+
     // Parse query parameters
     const query = {
       category: searchParams.get('category'),
@@ -86,43 +105,6 @@ export async function GET(request: Request) {
     }));
   } catch (error) {
     console.error('Error in GET /api/stocks:', error);
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(createErrorResponse(error.message), { status: 400 });
-    }
-    return NextResponse.json(
-      createErrorResponse('Internal server error'),
-      { status: 500 }
-    );
-  }
-}
-
-// ============================================
-// GET - Get specific stock by ticker
-// ============================================
-
-export async function GET_SPECIFIC(request: Request, { params }: { params: Promise<{ ticker: string }> }) {
-  try {
-    const { ticker } = await params;
-    const supabase = createServerSupabaseClient();
-
-    const validated = GetStockSchema.parse({ ticker: ticker.toUpperCase() });
-
-    const { data, error } = await supabase
-      .from('stocks')
-      .select('*')
-      .eq('ticker', validated.ticker)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return NextResponse.json(createErrorResponse('Stock not found'), { status: 404 });
-      }
-      return NextResponse.json(createErrorResponse(error.message), { status: 400 });
-    }
-
-    return NextResponse.json(createSuccessResponse(data));
-  } catch (error) {
-    console.error('Error in GET /api/stocks/[ticker]:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(createErrorResponse(error.message), { status: 400 });
     }
