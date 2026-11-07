@@ -131,9 +131,3 @@ export function StockTickerDisplay({
 //     100% { transform: translateX(-50%); }
 //   }
 // }
-
-// ============================================
-// EXPORT
-// ============================================
-
-export { StockTickerDisplay };
