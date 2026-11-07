@@ -11,6 +11,7 @@ import { StockChart } from '@/components/trading/StockChart';
 import { OrderForm } from '@/components/trading/OrderForm';
 import { MarketOverview } from '@/components/trading/MarketOverview';
 import { RecentTransactions } from '@/components/trading/RecentTransactions';
+import { RealtimeRefresh } from '@/components/common/RealtimeRefresh';
 
 // ============================================
 // TRADING FLOOR PAGE COMPONENT
@@ -93,6 +94,15 @@ export default async function TradingFloorPage() {
 
   return (
     <div className="min-h-screen">
+      <RealtimeRefresh
+        subscriptions={[
+          { table: 'stocks' },
+          { table: 'market_events' },
+          { table: 'user_profiles' },
+          { table: 'portfolios', filter: `user_id=eq.${profile.id}` },
+          { table: 'transactions', filter: `user_id=eq.${profile.id}` },
+        ]}
+      />
       {/* Page Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-text-primary mb-2">
