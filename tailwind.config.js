@@ -26,6 +26,19 @@ module.exports = {
           dark: '#3a0068',
           light: '#7a44b8',
         },
+        // Semantic text and border colors used throughout the UI
+        text: {
+          primary: '#111827',
+          secondary: '#4B5563',
+          muted: '#9CA3AF',
+        },
+        border: {
+          light: '#E5E7EB',
+        },
+        success: '#10B981',
+        danger: '#EF4444',
+        warning: '#F59E0B',
+        info: '#3B82F6',
         // Surface colors - very light grays
         surface: {
           white: '#FFFFFF',
