@@ -428,9 +428,16 @@ export interface ManipulationQueueInsert {
 // DATABASE RESPONSE TYPES
 // ============================================
 
+export interface SupabaseError {
+  message: string;
+  code?: string;
+  details?: string;
+  hint?: string;
+}
+
 export interface SupabaseResponse<T> {
   data: T | null;
-  error: Error | null;
+  error: SupabaseError | null;
   count: number | null;
 }
 
