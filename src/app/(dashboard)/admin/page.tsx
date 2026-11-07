@@ -70,13 +70,14 @@ export default async function AdminPanelPage() {
     .from('transactions')
     .select('*', { count: 'exact', head: true });
 
-  const { data: totalVolume } = await supabase
+  const { data: volumeTransactions } = await supabase
     .from('transactions')
-    .select('amount')
-    .then(({ data }) => ({
-      data,
-      total: data?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0,
-    }));
+    .select('amount');
+
+  const totalVolume = volumeTransactions?.reduce(
+    (sum, transaction) => sum + (transaction.amount || 0),
+    0
+  ) || 0;
 
   // ============================================
   // RENDER
@@ -115,7 +116,7 @@ export default async function AdminPanelPage() {
           userCount: userCount || 0,
           stockCount: stockCount || 0,
           transactionCount: transactionCount || 0,
-          totalVolume: totalVolume?.total || 0,
+          totalVolume,
         }}
       />
     </div>
