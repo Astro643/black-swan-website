@@ -29,7 +29,7 @@ export default async function HomePage() {
   // Get top 10 stocks for ticker display
   const { data: stocks } = await supabase
     .from('stocks')
-    .select('ticker, name, current_price, category')
+    .select('*')
     .eq('is_active', true)
     .order('volume_24h', { ascending: false })
     .limit(10);
