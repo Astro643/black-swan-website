@@ -270,6 +270,10 @@ export interface InventoryRow {
   created_at: string;
 }
 
+export type InventoryWithShopItem = InventoryRow & {
+  shop_items: ShopItemRow;
+};
+
 export interface InventoryInsert {
   user_id: string;
   shop_item_id: string;
