@@ -12,6 +12,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SERVICE_ROLE_KEY = Deno.env.get('SERVICE_ROLE_KEY') || '';
+const CRON_SECRET = Deno.env.get('CRON_SECRET') || '';
 const MARKET_CONFIG = {
   BASE_VOLATILITY_RANGE: { min: 0.01, max: 0.15 },
   RANDOM_SWING_RANGE: { min: -1.0, max: 1.0 },
@@ -32,6 +33,27 @@ if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
+const CRON_SECRET = Deno.env.get('CRON_SECRET') || '';
+
+async function isAuthorizedCronRequest(req: Request): Promise<boolean> {
+  if (!CRON_SECRET) return false;
+  const suppliedSecret = req.headers.get('x-cron-secret') || '';
+  if (!suppliedSecret) return false;
+
+  // Compare fixed-length SHA-256 digests to avoid a simple early-exit string comparison.
+  const encoder = new TextEncoder();
+  const [expectedDigest, suppliedDigest] = await Promise.all([
+    crypto.subtle.digest('SHA-256', encoder.encode(CRON_SECRET)),
+    crypto.subtle.digest('SHA-256', encoder.encode(suppliedSecret)),
+  ]);
+  const expected = new Uint8Array(expectedDigest);
+  const supplied = new Uint8Array(suppliedDigest);
+  let difference = 0;
+  for (let i = 0; i < expected.length; i++) difference |= expected[i] ^ supplied[i];
+  return difference === 0;
+}
+
+
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
@@ -46,6 +68,21 @@ function getRandomInRange(min: number, max: number): number {
 
 serve(async (req) => {
   try {
+    // Require our private Cron header. Gateway JWT verification is disabled
+    // for these functions in supabase/config.toml, so this check is mandatory.
+    if (!CRON_SECRET) {
+      return new Response(JSON.stringify({ error: 'Cron authentication is not configured' }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    if (!(await isAuthorizedCronRequest(req))) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     // Only allow POST requests
     if (req.method !== 'POST') {
       return new Response(JSON.stringify({ error: 'Method not allowed' }), {
