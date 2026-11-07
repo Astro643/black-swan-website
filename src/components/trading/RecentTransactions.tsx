@@ -161,9 +161,3 @@ function getTransactionIcon(type: string): React.ReactNode {
       );
   }
 }
-
-// ============================================
-// EXPORT
-// ============================================
-
-export { RecentTransactions };
