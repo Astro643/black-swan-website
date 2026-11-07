@@ -1,12 +1,16 @@
-name: Deploy Black Swan Edge Functions
+name: Black Swan CI and Edge Function Deployment
 
 on:
   push:
     branches:
       - main
     paths:
+      - "src/**"
       - "functions/**"
-      - "src/types/database.ts"
+      - "supabase/**"
+      - "package.json"
+      - "tsconfig.json"
+      - ".eslintrc.json"
       - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
@@ -14,14 +18,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: black-swan-edge-functions-production
+  group: black-swan-production
   cancel-in-progress: false
 
 jobs:
-  validate-and-deploy:
-    name: Validate and deploy Supabase functions
+  website-checks:
+    name: Website checks (all checks run)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Check out repository
@@ -32,66 +36,195 @@ jobs:
         with:
           node-version: 20
 
-      # No lockfile exists in this repository, so do not enable npm cache.
+      # There is no committed lockfile yet, so install from package.json without npm caching.
       - name: Install dependencies
+        id: install
+        continue-on-error: true
         run: npm install --no-audit --no-fund
 
-      - name: Check TypeScript
+      - name: TypeScript typecheck
+        id: typecheck
+        continue-on-error: true
         run: npm run typecheck
 
+      - name: ESLint
+        id: lint
+        continue-on-error: true
+        run: npm run lint
+
+      # Dummy public values allow Next.js to compile when CI secrets are not configured.
+      # Production runtime still needs the real Supabase values in its hosting environment.
+      - name: Build Next.js application
+        id: build
+        continue-on-error: true
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || secrets.SUPABASE_URL || 'https://example.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || secrets.SUPABASE_ANON_KEY || 'ci-placeholder-anon-key' }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://example.supabase.co' }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'ci-placeholder-anon-key' }}
+        run: npm run build
+
+      - name: Summarize website checks
+        if: always()
+        env:
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+          TYPECHECK_OUTCOME: ${{ steps.typecheck.outcome }}
+          LINT_OUTCOME: ${{ steps.lint.outcome }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+        shell: bash
+        run: |
+          failed=0
+          for check in INSTALL TYPECHECK LINT BUILD; do
+            variable="${check}_OUTCOME"
+            outcome="${!variable}"
+            echo "${check}: ${outcome}"
+            if [[ "${outcome}" != "success" ]]; then
+              failed=1
+            fi
+          done
+          if [[ "${failed}" -ne 0 ]]; then
+            echo "::error::One or more website checks failed. See the individual steps above."
+          fi
+          exit "${failed}"
+
+  edge-functions:
+    name: Validate and deploy all Supabase Edge Functions
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Deno
+        id: setup_deno
+        continue-on-error: true
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
       - name: Set up Supabase CLI
+        id: setup_supabase
+        continue-on-error: true
         uses: supabase/setup-cli@v3
         with:
           version: latest
 
-      - name: Validate deployment configuration
+      - name: Stage every Edge Function
+        id: stage
         shell: bash
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
         run: |
-          set -euo pipefail
-
-          if [[ -z "${SUPABASE_ACCESS_TOKEN}" ]]; then
-            echo "::error::Missing GitHub Actions secret SUPABASE_ACCESS_TOKEN."
-            exit 1
-          fi
-
-          if [[ -z "${SUPABASE_PROJECT_ID}" ]]; then
-            echo "::error::Missing GitHub Actions secret SUPABASE_PROJECT_ID."
-            exit 1
-          fi
+          failed=0
+          mkdir -p supabase/functions
 
           for function in loan-interest market-sync wealth-tax; do
-            if [[ ! -f "functions/${function}/index.ts" ]]; then
-              echo "::error::Missing functions/${function}/index.ts."
-              exit 1
+            source_dir="functions/${function}"
+            target_dir="supabase/functions/${function}"
+
+            if [[ ! -f "${source_dir}/index.ts" ]]; then
+              echo "::error::Missing ${source_dir}/index.ts; continuing with the other functions."
+              failed=1
+              continue
+            fi
+
+            mkdir -p "${target_dir}"
+            if cp -R "${source_dir}/." "${target_dir}/"; then
+              echo "Staged ${function}."
+            else
+              echo "::error::Could not stage ${function}; continuing."
+              failed=1
             fi
           done
 
-      - name: Prepare Supabase function directory
+          echo "failed=${failed}" >> "${GITHUB_OUTPUT}"
+          exit 0
+
+      - name: Typecheck each Edge Function with Deno
+        id: deno_check
         shell: bash
         run: |
-          set -euo pipefail
-          mkdir -p supabase/functions
+          failed=0
 
-          # Supabase CLI expects functions under supabase/functions/.
-          # Keep the existing source layout under /functions unchanged.
           for function in loan-interest market-sync wealth-tax; do
-            mkdir -p "supabase/functions/${function}"
-            cp -R "functions/${function}/." "supabase/functions/${function}/"
+            source_file="functions/${function}/index.ts"
+            if [[ ! -f "${source_file}" ]]; then
+              echo "::error::Cannot check missing ${source_file}; continuing."
+              failed=1
+              continue
+            fi
+
+            echo "Checking ${function}..."
+            if deno check --no-lock "${source_file}"; then
+              echo "${function}: typecheck passed."
+            else
+              echo "::error::${function} Deno typecheck failed; checking the next function."
+              failed=1
+            fi
           done
 
-      - name: Deploy Edge Functions
+          echo "failed=${failed}" >> "${GITHUB_OUTPUT}"
+          exit 0
+
+      - name: Deploy each Edge Function independently
+        id: deploy
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
         shell: bash
         run: |
-          set -euo pipefail
+          failed=0
 
-          for function in loan-interest market-sync wealth-tax; do
-            echo "Deploying ${function}..."
-            supabase functions deploy "${function}" \
-              --project-ref "${SUPABASE_PROJECT_ID}"
-          done
+          if [[ -z "${SUPABASE_ACCESS_TOKEN}" || -z "${SUPABASE_PROJECT_ID}" ]]; then
+            echo "::error::Set both SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_ID in repository Actions secrets."
+            failed=1
+          elif ! command -v supabase >/dev/null 2>&1; then
+            echo "::error::Supabase CLI is unavailable; cannot deploy functions."
+            failed=1
+          else
+            for function in loan-interest market-sync wealth-tax; do
+              if [[ ! -f "supabase/functions/${function}/index.ts" ]]; then
+                echo "::error::Skipping ${function}: staged entrypoint is missing."
+                failed=1
+                continue
+              fi
+
+              echo "Deploying ${function}..."
+              if supabase functions deploy "${function}" --project-ref "${SUPABASE_PROJECT_ID}"; then
+                echo "${function}: deployment succeeded."
+              else
+                echo "::error::${function} deployment failed; continuing with the remaining functions."
+                failed=1
+              fi
+            done
+          fi
+
+          echo "failed=${failed}" >> "${GITHUB_OUTPUT}"
+          exit 0
+
+      - name: Summarize Edge Function results
+        if: always()
+        env:
+          DENO_SETUP_OUTCOME: ${{ steps.setup_deno.outcome }}
+          SUPABASE_SETUP_OUTCOME: ${{ steps.setup_supabase.outcome }}
+          STAGE_FAILED: ${{ steps.stage.outputs.failed }}
+          DENO_FAILED: ${{ steps.deno_check.outputs.failed }}
+          DEPLOY_FAILED: ${{ steps.deploy.outputs.failed }}
+        shell: bash
+        run: |
+          failed=0
+          echo "Deno setup: ${DENO_SETUP_OUTCOME}"
+          echo "Supabase CLI setup: ${SUPABASE_SETUP_OUTCOME}"
+          echo "Staging failure flag: ${STAGE_FAILED:-unknown}"
+          echo "Deno check failure flag: ${DENO_FAILED:-unknown}"
+          echo "Deployment failure flag: ${DEPLOY_FAILED:-unknown}"
+
+          [[ "${DENO_SETUP_OUTCOME}" == "success" ]] || failed=1
+          [[ "${SUPABASE_SETUP_OUTCOME}" == "success" ]] || failed=1
+          [[ "${STAGE_FAILED}" == "0" ]] || failed=1
+          [[ "${DENO_FAILED}" == "0" ]] || failed=1
+          [[ "${DEPLOY_FAILED}" == "0" ]] || failed=1
+
+          if [[ "${failed}" -ne 0 ]]; then
+            echo "::error::One or more Edge Function checks or deployments failed. Other functions were still attempted."
+          fi
+          exit "${failed}"
