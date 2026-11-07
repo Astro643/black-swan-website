@@ -22,12 +22,12 @@ export function cn(...inputs: ClassValue[]) {
 /**
  * Format currency
  */
-export function formatCurrency(amount: number, currency: string = 'USD', locale: string = 'en-US'): string {
+export function formatCurrency(amount: number, currency: string = 'USD', locale: string = 'en-US', decimals: number = 2): string {
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
   }).format(amount);
 }
 
@@ -62,6 +62,13 @@ export function formatDate(date: string | Date, options?: Intl.DateTimeFormatOpt
     minute: '2-digit',
     ...options,
   }).format(d);
+}
+
+/**
+ * Format a date and time for activity and audit views.
+ */
+export function formatDateTime(date: string | Date): string {
+  return formatDate(date, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 /**
@@ -370,7 +377,8 @@ export function getTransactionIcon(type: string): string {
  */
 export function isValidTicker(ticker: string): boolean {
   const clean = ticker.toUpperCase().trim();
-  return /^[A-Z]{1,10}$/.test(clean) && STOCK_CATEGORIES.ALL.includes(clean);
+  const knownTickers: readonly string[] = STOCK_CATEGORIES.ALL;
+  return /^[A-Z]{1,10}$/.test(clean) && knownTickers.includes(clean);
 }
 
 /**
