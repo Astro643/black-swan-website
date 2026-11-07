@@ -5,7 +5,7 @@
 
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { cn, formatCurrency, formatNumber } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import type { UserProfileRow } from '@/types/database';
@@ -24,6 +24,7 @@ interface HeaderProps {
 
 export function Header({ user }: HeaderProps) {
   const pathname = usePathname();
+  const router = useRouter();
 
   // ============================================
   // RENDER
@@ -66,16 +67,19 @@ export function Header({ user }: HeaderProps) {
           )}
 
           {/* Sign out button */}
-          <form action="/api/auth?action=signout" method="POST">
-            <Button
-              type="submit"
-              variant="outline"
-              size="sm"
-              className="border-primary/30 text-primary hover:bg-primary/10"
-            >
-              Sign Out
-            </Button>
-          </form>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="border-primary/30 text-primary hover:bg-primary/10"
+            onClick={async () => {
+              await fetch('/api/auth', { method: 'DELETE' });
+              router.push('/login');
+              router.refresh();
+            }}
+          >
+            Sign Out
+          </Button>
         </div>
       </div>
     </header>
