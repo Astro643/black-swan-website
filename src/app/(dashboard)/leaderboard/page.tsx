@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/Badge';
 import { formatCurrency, formatNumber, formatDateTime } from '@/lib/utils';
 import type { UserProfileRow, PortfolioRow, StockRow } from '@/types/database';
+import { RealtimeRefresh } from '@/components/common/RealtimeRefresh';
 
 // ============================================
 // LEADERBOARD PAGE COMPONENT
@@ -98,6 +99,14 @@ export default async function LeaderboardPage() {
 
   return (
     <div className="min-h-screen">
+      <RealtimeRefresh
+        subscriptions={[
+          { table: 'user_profiles' },
+          { table: 'portfolios' },
+          { table: 'stocks' },
+          { table: 'transactions' },
+        ]}
+      />
       {/* Page Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between flex-wrap gap-4">
