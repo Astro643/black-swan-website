@@ -95,6 +95,7 @@ export default async function PortfolioPage() {
           { table: 'stocks' },
           { table: 'user_profiles', filter: `id=eq.${profile.id}` },
           { table: 'portfolios', filter: `user_id=eq.${profile.id}` },
+          { table: 'portfolios', event: 'INSERT', filter: `user_id=eq.${profile.id}` },
           { table: 'transactions', filter: `user_id=eq.${profile.id}` },
         ]}
       />
