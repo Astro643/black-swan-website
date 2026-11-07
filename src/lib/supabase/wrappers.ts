@@ -16,6 +16,7 @@ import type {
   ShopItemRow,
   ShopItemInsert,
   InventoryRow,
+  InventoryWithShopItem,
   InventoryInsert,
   InventoryUpdate,
   MarketEventRow,
@@ -373,7 +374,7 @@ class DatabaseClient {
   // INVENTORY OPERATIONS
   // ============================================
 
-  async getUserInventory(userId: string): Promise<SupabaseResponse<InventoryRow[]>> {
+  async getUserInventory(userId: string): Promise<SupabaseResponse<InventoryWithShopItem[]>> {
     const { data, error, count } = await this.client
       .from('inventories')
       .select('*, shop_items!inner(*)')
@@ -383,7 +384,7 @@ class DatabaseClient {
     return { data, error, count };
   }
 
-  async getInventoryItem(userId: string, itemId: string): Promise<SupabaseResponse<InventoryRow>> {
+  async getInventoryItem(userId: string, itemId: string): Promise<SupabaseResponse<InventoryWithShopItem>> {
     const { data, error, count } = await this.client
       .from('inventories')
       .select('*, shop_items!inner(*)')
