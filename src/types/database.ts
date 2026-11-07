@@ -508,9 +508,9 @@ export interface DiscordGuild {
  * The row/insert/update shapes above are shared with the Discord bot.
  */
 type DatabaseTable<Row, Insert, Update> = {
-  Row: Row;
-  Insert: Insert;
-  Update: Update;
+  Row: Record<string, any> & Row;
+  Insert: Record<string, any> & Insert;
+  Update: Record<string, any> & Update;
   Relationships: any[];
 };
 
@@ -528,12 +528,12 @@ export type Database = {
       notifications: DatabaseTable<NotificationRow, NotificationInsert, Partial<NotificationInsert>>;
       manipulation_queue: DatabaseTable<ManipulationQueueRow, ManipulationQueueInsert, Partial<ManipulationQueueInsert>>;
     };
-    Views: Record<string, never>;
+    Views: { [viewName: string]: never };
     Functions: {
       increment: { Args: { amount: number; column: string }; Returns: number };
       decrement: { Args: { amount: number; column: string }; Returns: number };
     };
-    Enums: Record<string, never>;
-    CompositeTypes: Record<string, never>;
+    Enums: { [enumName: string]: never };
+    CompositeTypes: { [compositeName: string]: never };
   };
 };
