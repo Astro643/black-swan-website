@@ -105,6 +105,7 @@ export default async function LeaderboardPage() {
           ...(profile ? [
             { table: 'user_profiles', event: 'UPDATE' as const, filter: `id=eq.${profile.id}` },
             { table: 'portfolios', event: 'INSERT' as const, filter: `user_id=eq.${profile.id}` },
+            { table: 'portfolios', event: 'UPDATE' as const, filter: `user_id=eq.${profile.id}` },
             { table: 'transactions', event: 'INSERT' as const, filter: `user_id=eq.${profile.id}` },
           ] : []),
         ]}
