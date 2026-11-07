@@ -101,10 +101,12 @@ export default async function LeaderboardPage() {
     <div className="min-h-screen">
       <RealtimeRefresh
         subscriptions={[
-          { table: 'user_profiles' },
-          { table: 'portfolios' },
           { table: 'stocks' },
-          { table: 'transactions' },
+          ...(profile ? [
+            { table: 'user_profiles', event: 'UPDATE' as const, filter: `id=eq.${profile.id}` },
+            { table: 'portfolios', event: 'INSERT' as const, filter: `user_id=eq.${profile.id}` },
+            { table: 'transactions', event: 'INSERT' as const, filter: `user_id=eq.${profile.id}` },
+          ] : []),
         ]}
       />
       {/* Page Header */}
