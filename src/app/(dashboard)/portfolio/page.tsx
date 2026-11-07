@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/Badge';
 import { formatCurrency, formatPercentage, formatNumber, calculateProfitLossPercent } from '@/lib/utils';
 import type { UserProfileRow, PortfolioRow, StockRow } from '@/types/database';
+import { RealtimeRefresh } from '@/components/common/RealtimeRefresh';
 
 // ============================================
 // PORTFOLIO PAGE COMPONENT
@@ -89,6 +90,14 @@ export default async function PortfolioPage() {
 
   return (
     <div className="min-h-screen">
+      <RealtimeRefresh
+        subscriptions={[
+          { table: 'stocks' },
+          { table: 'user_profiles', filter: `id=eq.${profile.id}` },
+          { table: 'portfolios', filter: `user_id=eq.${profile.id}` },
+          { table: 'transactions', filter: `user_id=eq.${profile.id}` },
+        ]}
+      />
       {/* Page Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between flex-wrap gap-4">
