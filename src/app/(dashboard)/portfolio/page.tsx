@@ -93,10 +93,10 @@ export default async function PortfolioPage() {
       <RealtimeRefresh
         subscriptions={[
           { table: 'stocks' },
-          { table: 'user_profiles', filter: `id=eq.${profile.id}` },
-          { table: 'portfolios', filter: `user_id=eq.${profile.id}` },
+          { table: 'user_profiles', event: 'UPDATE', filter: `id=eq.${profile.id}` },
           { table: 'portfolios', event: 'INSERT', filter: `user_id=eq.${profile.id}` },
-          { table: 'transactions', filter: `user_id=eq.${profile.id}` },
+          { table: 'portfolios', event: 'UPDATE', filter: `user_id=eq.${profile.id}` },
+          { table: 'transactions', event: 'INSERT', filter: `user_id=eq.${profile.id}` },
         ]}
       />
       {/* Page Header */}
