@@ -29,7 +29,6 @@ import type {
   ManipulationQueueRow,
   ManipulationQueueInsert,
   SupabaseResponse,
-  Database,
 } from '@/types/database';
 
 // ============================================
@@ -38,18 +37,18 @@ import type {
 // ============================================
 
 class DatabaseClient {
-  private client: SupabaseClient<Database>;
+  private client: SupabaseClient<any>;
   private isServer: boolean;
 
-  constructor(client?: SupabaseClient<Database>, isServer: boolean = false) {
+  constructor(client?: SupabaseClient<any>, isServer: boolean = false) {
     this.client = client || this.createClient();
     this.isServer = isServer;
   }
 
-  private createClient() {
+  private createClient(): SupabaseClient<any> {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
-    return createClient<Database>(supabaseUrl, supabaseAnonKey);
+    return createClient(supabaseUrl, supabaseAnonKey) as SupabaseClient<any>;
   }
 
   // ============================================
@@ -696,12 +695,12 @@ export const createDatabaseClient = () => {
 /**
  * Create a server-side database client
  */
-export const createServerSupabaseClient = (): SupabaseClient<Database> => {
+export const createServerSupabaseClient = (): SupabaseClient<any> => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
   const cookieStore = cookies();
 
-  return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
+  return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -716,7 +715,7 @@ export const createServerSupabaseClient = (): SupabaseClient<Database> => {
         }
       },
     },
-  });
+  }) as SupabaseClient<any>;
 };
 
 export const createServerDatabaseClient = () => {
