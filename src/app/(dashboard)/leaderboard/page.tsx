@@ -153,7 +153,7 @@ export default async function LeaderboardPage() {
           <CardContent>
             <p className="text-2xl font-bold text-text-primary">
               {rankedUsers.length > 0 
-                ? formatCurrency(rankedUsers.reduce((sum, u) => sum + u.totalSpent + u.totalEarnings, 0))
+                ? formatCurrency(rankedUsers.reduce((sum, u) => sum + u.total_spent + u.total_earnings, 0))
                 : 'N/A'}
             </p>
           </CardContent>
