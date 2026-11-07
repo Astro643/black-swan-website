@@ -1,0 +1,10 @@
+# These endpoints use their own CRON_SECRET header authentication.
+# Keep this check in each handler; do not expose the secret to the browser.
+[functions.market-sync]
+verify_jwt = false
+
+[functions.loan-interest]
+verify_jwt = false
+
+[functions.wealth-tax]
+verify_jwt = false
