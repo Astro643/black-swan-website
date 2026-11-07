@@ -270,9 +270,3 @@ function getEventVariant(eventType: string): 'default' | 'primary' | 'success' |
       return 'default';
   }
 }
-
-// ============================================
-// EXPORT
-// ============================================
-
-export { MarketOverview };
