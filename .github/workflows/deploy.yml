@@ -189,7 +189,7 @@ jobs:
               fi
 
               echo "Deploying ${function}..."
-              if supabase functions deploy "${function}" --project-ref "${SUPABASE_PROJECT_ID}"; then
+              if supabase functions deploy "${function}" --project-ref "${SUPABASE_PROJECT_ID}" --yes; then
                 echo "${function}: deployment succeeded."
               else
                 echo "::error::${function} deployment failed; continuing with the remaining functions."
