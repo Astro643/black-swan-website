@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/wrappers';
 import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
+import { headers } from 'next/headers';
 
 // ============================================
 // LOGIN PAGE COMPONENT
@@ -25,8 +26,18 @@ export default async function LoginPage() {
   // DISCORD OAUTH URL
   // ============================================
 
-  const redirectUrl = process.env.NEXT_PUBLIC_DISCORD_REDIRECT_URI || 
-    `${process.env.RENDER_EXTERNAL_URL || 'http://localhost:3000'}/auth/callback`;
+  const requestHeaders = headers();
+  const forwardedHost = requestHeaders.get('x-forwarded-host');
+  const host = forwardedHost || requestHeaders.get('host');
+  const forwardedProtocol = requestHeaders.get('x-forwarded-proto');
+  const protocol = forwardedProtocol?.split(',')[0]?.trim() || 'https';
+
+  if (!host) {
+    throw new Error('Unable to determine the website host for Discord authentication');
+  }
+
+  // The route group (auth) is not part of the URL, so the callback is /callback.
+  const redirectUrl = `${protocol}://${host}/callback`;
 
   const { data: discordAuthData, error: oauthError } = await supabase.auth.signInWithOAuth({
     provider: 'discord',
