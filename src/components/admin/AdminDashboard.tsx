@@ -27,7 +27,7 @@ interface AdminDashboardProps {
   profile: UserProfileRow;
   users: UserProfileRow[];
   stocks: StockRow[];
-  transactions: TransactionRow[];
+  transactions: (TransactionRow & { user_profiles?: { username: string; avatar?: string | null } | null })[];
   marketEvents: MarketEventRow[];
   stats: AdminDashboardStats;
 }
@@ -227,7 +227,7 @@ export function AdminDashboard({
                     <Badge variant={event.event_type === 'BLACK_SWAN' ? 'destructive' : 'default'}>
                       {event.event_type}
                     </Badge>
-                    <span className="text-sm">{event.description}</span>
+                    <span className="text-sm">{typeof event.metadata?.description === 'string' ? event.metadata.description : event.event_type}</span>
                   </div>
                   <span className="text-xs text-text-muted">
                     {formatDateTime(event.created_at)}
@@ -383,8 +383,8 @@ export function AdminDashboard({
                       </Badge>
                     </td>
                     <td className="py-2 px-4 font-medium">{tx.ticker}</td>
-                    <td className="py-2 px-4">{formatNumber(tx.shares)}</td>
-                    <td className="py-2 px-4">{formatCurrency(tx.price_per_share)}</td>
+                    <td className="py-2 px-4">{formatNumber(tx.shares ?? 0)}</td>
+                    <td className="py-2 px-4">{formatCurrency(tx.price ?? 0)}</td>
                     <td className="py-2 px-4">{formatCurrency(tx.amount)}</td>
                     <td className="py-2 px-4 text-text-muted">
                       {formatDateTime(tx.created_at)}
@@ -423,8 +423,8 @@ export function AdminDashboard({
                       </Badge>
                       <span className="font-semibold">{event.description}</span>
                     </div>
-                    {event.details && (
-                      <p className="text-sm text-text-muted mt-1">{event.details}</p>
+                    {typeof event.metadata?.details === 'string' && (
+                      <p className="text-sm text-text-muted mt-1">{event.metadata.details}</p>
                     )}
                   </div>
                   <span className="text-xs text-text-muted whitespace-nowrap">
