@@ -397,20 +397,3 @@ export const EDGE_FUNCTION_CONFIG = {
     FUNCTION_NAME: 'market-sync',
   },
 } as const;
-
-// ============================================
-// EXPORT ALL
-// ============================================
-
-export {
-  MARKET_CONFIG,
-  FINANCIAL_CONFIG,
-  STOCK_CATEGORIES,
-  SHOP_ITEM_TYPES,
-  SHOP_ITEMS,
-  API_CONFIG,
-  UI_CONFIG,
-  STORAGE_CONFIG,
-  REALTIME_CONFIG,
-  EDGE_FUNCTION_CONFIG,
-};
