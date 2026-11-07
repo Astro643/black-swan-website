@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/wrappers';
-import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 import DiscordSignInButton from './DiscordSignInButton';
 
