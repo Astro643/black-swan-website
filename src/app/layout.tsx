@@ -2,8 +2,6 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
-import { Sidebar } from '@/components/layout/Sidebar';
-import { Header } from '@/components/layout/Header';
 
 // ============================================
 // FONT CONFIGURATION
@@ -96,23 +94,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${jetBrainsMono.variable} font-sans`}>
-        <Providers>
-          <div className="flex min-h-screen bg-surface-white">
-            {/* Sidebar */}
-            <Sidebar />
-            
-            {/* Main Content */}
-            <main className="flex-1 flex flex-col min-h-screen ml-0 md:ml-[250px]">
-              {/* Header */}
-              <Header />
-              
-              {/* Page Content */}
-              <div className="flex-1 p-4 md:p-6 lg:p-8">
-                {children}
-              </div>
-            </main>
-          </div>
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
