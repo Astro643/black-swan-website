@@ -1,5 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
-import { createServerComponentClient } from '@supabase/ssr';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type {
   UserProfileRow,
@@ -28,6 +28,7 @@ import type {
   ManipulationQueueRow,
   ManipulationQueueInsert,
   SupabaseResponse,
+  Database,
 } from '@/types/database';
 
 // ============================================
@@ -36,10 +37,10 @@ import type {
 // ============================================
 
 class DatabaseClient {
-  private client: ReturnType<typeof createClient>;
+  private client: SupabaseClient<Database>;
   private isServer: boolean;
 
-  constructor(client?: ReturnType<typeof createClient>, isServer: boolean = false) {
+  constructor(client?: SupabaseClient<Database>, isServer: boolean = false) {
     this.client = client || this.createClient();
     this.isServer = isServer;
   }
@@ -47,7 +48,7 @@ class DatabaseClient {
   private createClient() {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
-    return createClient(supabaseUrl, supabaseAnonKey);
+    return createClient<Database>(supabaseUrl, supabaseAnonKey);
   }
 
   // ============================================
@@ -96,33 +97,17 @@ class DatabaseClient {
   }
 
   async updateUserCash(id: string, amount: number): Promise<SupabaseResponse<UserProfileRow>> {
-    const { data, error, count } = await this.client
-      .from('user_profiles')
-      .update({
-        cash: this.client.rpc('increment', { amount, column: 'cash' }),
-        net_worth: this.client.rpc('increment', { amount, column: 'net_worth' }),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .select()
-      .single();
-    
-    // Fallback for raw SQL
-    if (error) {
-      const { data: profile } = await this.getUserProfileById(id);
-      if (profile) {
-        const newCash = profile.cash + amount;
-        const newNetWorth = profile.net_worth + amount;
-        const result = await this.updateUserProfile(id, {
-          cash: newCash,
-          net_worth: newNetWorth,
-          updated_at: new Date().toISOString(),
-        });
-        return result;
-      }
+    // An RPC query builder is not a valid value inside an UPDATE payload.
+    const { data: profile, error: readError } = await this.getUserProfileById(id);
+    if (readError || !profile) {
+      return { data: null, error: readError, count: null };
     }
-    
-    return { data, error, count };
+
+    return this.updateUserProfile(id, {
+      cash: profile.cash + amount,
+      net_worth: profile.net_worth + amount,
+      updated_at: new Date().toISOString(),
+    });
   }
 
   async getLeaderboard(limit: number = 10): Promise<SupabaseResponse<UserProfileRow[]>> {
@@ -442,16 +427,30 @@ class DatabaseClient {
   }
 
   async consumeInventoryItem(id: string): Promise<SupabaseResponse<InventoryRow>> {
+    const { data: current, error: readError } = await this.client
+      .from('inventories')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (readError || !current) {
+      return { data: null, error: readError, count: null };
+    }
+
+    if (current.quantity <= 0) {
+      return { data: current, error: null, count: 1 };
+    }
+
     const { data, error, count } = await this.client
       .from('inventories')
       .update({
-        quantity: this.client.rpc('decrement', { amount: 1, column: 'quantity' }),
+        quantity: current.quantity - 1,
         last_used_at: new Date().toISOString(),
       })
       .eq('id', id)
       .select()
       .single();
-    
+
     return { data, error, count };
   }
 
@@ -696,12 +695,36 @@ export const createDatabaseClient = () => {
 /**
  * Create a server-side database client
  */
-export const createServerDatabaseClient = () => {
+export const createServerSupabaseClient = (): SupabaseClient<Database> => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
   const cookieStore = cookies();
-  const supabase = createServerComponentClient({
-    cookies: () => cookieStore,
+
+  return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      get(name: string) {
+        return cookieStore.get(name)?.value;
+      },
+      set(name: string, value: string, options: any) {
+        try {
+          cookieStore.set(name, value, options);
+        } catch {
+          // Server Components cannot mutate cookies; Route Handlers can.
+        }
+      },
+      remove(name: string, options: any) {
+        try {
+          cookieStore.set(name, '', { ...options, maxAge: 0 });
+        } catch {
+          // Server Components cannot mutate cookies; Route Handlers can.
+        }
+      },
+    },
   });
-  return new DatabaseClient(supabase, true);
+};
+
+export const createServerDatabaseClient = () => {
+  return new DatabaseClient(createServerSupabaseClient(), true);
 };
 
 /**
