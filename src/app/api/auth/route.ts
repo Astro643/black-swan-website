@@ -44,8 +44,19 @@ export async function POST(request: Request) {
     const { action } = await request.json();
 
     if (action === 'signin') {
-      const redirectUrl = process.env.NEXT_PUBLIC_DISCORD_REDIRECT_URI || 
-        `${process.env.RENDER_EXTERNAL_URL || 'http://localhost:3000'}/auth/callback`;
+      const forwardedHost = request.headers.get('x-forwarded-host');
+      const host = forwardedHost || request.headers.get('host');
+      const forwardedProtocol = request.headers.get('x-forwarded-proto');
+      const protocol = forwardedProtocol?.split(',')[0]?.trim() || 'https';
+
+      if (!host) {
+        return NextResponse.json(
+          createErrorResponse('Unable to determine the website host'),
+          { status: 500 }
+        );
+      }
+
+      const redirectUrl = `${protocol}://${host}/callback`;
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
