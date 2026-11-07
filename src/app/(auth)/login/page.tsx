@@ -2,14 +2,36 @@ import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/wrappers';
 import Link from 'next/link';
 import DiscordSignInButton from './DiscordSignInButton';
+import SignOutButton from './SignOutButton';
 
-export default async function LoginPage() {
+type LoginPageProps = {
+  searchParams?: { error?: string };
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
   const supabase = createServerSupabaseClient();
   const { data: { session } } = await supabase.auth.getSession();
 
+  let hasProfile = false;
   if (session) {
-    redirect('/trading');
+    const { data: profile, error } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('discord_id', session.user.id)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Login page could not check user profile:', error);
+    }
+    hasProfile = !!profile;
+
+    if (hasProfile) {
+      redirect('/trading');
+    }
   }
+
+  const profileMissing = !!session && !hasProfile;
+  const errorMessage = searchParams?.error;
 
   return (
     <div className="min-h-screen bg-surface-white flex flex-col items-center justify-center p-4">
@@ -24,8 +46,23 @@ export default async function LoginPage() {
           <p className="text-text-secondary">Sign in to access your trading dashboard</p>
         </div>
 
+        {profileMissing && (
+          <div className="mb-5 rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800" role="alert">
+            Your Discord account is authenticated, but your user profile could not be loaded or created. This is usually caused by a Supabase database permission or profile setup issue. Sign out below, then check the Render logs for the profile creation error.
+            <div className="mt-3">
+              <SignOutButton />
+            </div>
+          </div>
+        )}
+
+        {errorMessage === 'profile_missing' && !profileMissing && (
+          <p className="mb-5 rounded-lg bg-red-50 p-3 text-sm text-red-700" role="alert">
+            No user profile was found for this account. Please try signing in again.
+          </p>
+        )}
+
         <div className="space-y-4">
-          <DiscordSignInButton />
+          {!session && <DiscordSignInButton />}
 
           <div className="text-center text-sm text-text-muted">
             <p className="mb-2">
