@@ -1,9 +1,12 @@
+'use client';
+
 // ============================================
 // BUTTON COMPONENT
 // Reusable button with Indigo theme
 // ============================================
 
 import { forwardRef, ButtonHTMLAttributes } from 'react';
+import { Slot } from '@radix-ui/react-slot';
 import { cn } from '@/lib/utils';
 import { VariantProps, cva } from 'class-variance-authority';
 
@@ -51,8 +54,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>, VariantPr
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
+    const Component = asChild ? Slot : 'button';
+
     return (
-      <button
+      <Component
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         {...props}
