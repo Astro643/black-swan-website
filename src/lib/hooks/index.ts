@@ -14,6 +14,8 @@ import type {
   ShopItemRow,
   InventoryRow,
   MarketEventRow,
+  LoanRow,
+  NotificationRow,
 } from '@/types/database';
 import {
   MARKET_CONFIG,
