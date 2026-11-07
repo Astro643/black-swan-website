@@ -1,81 +1,75 @@
-// ============================================
-// AUTH CALLBACK ROUTE
-// Handles Discord OAuth callback
-// ============================================
-
 import { createServerSupabaseClient } from '@/lib/supabase/wrappers';
 import { NextResponse } from 'next/server';
 
-// ============================================
-// CALLBACK HANDLER
-// ============================================
-
 export const dynamic = 'force-dynamic';
 
+function getPublicOrigin(request: Request): string {
+  const configuredUrl = process.env.RENDER_EXTERNAL_URL;
+  if (configuredUrl) return configuredUrl.replace(/\/$/, '');
+
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  const host = forwardedHost || request.headers.get('host');
+  const forwardedProto = request.headers.get('x-forwarded-proto');
+  const protocol = forwardedProto?.split(',')[0]?.trim() || 'https';
+
+  if (!host || host.startsWith('localhost')) {
+    throw new Error('Could not determine the public Render host for the auth callback.');
+  }
+
+  return `${protocol}://${host}`;
+}
+
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const code = searchParams.get('code');
-  
-  if (!code) {
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
-
-  // ============================================
-  // SUPABASE CLIENT SETUP
-  // ============================================
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
-  
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return NextResponse.json(
-      { error: 'Supabase configuration missing' },
-      { status: 500 }
-    );
-  }
-
-  // ============================================
-  // EXCHANGE CODE FOR SESSION
-  // ============================================
+  let origin: string;
 
   try {
-    // Create a cookie-aware Supabase server client.
-    const supabase = createServerSupabaseClient();
+    origin = getPublicOrigin(request);
+  } catch (error) {
+    console.error('Auth callback could not determine public origin:', error);
+    return NextResponse.json({ error: 'Public website URL is not configured' }, { status: 500 });
+  }
 
-    // Exchange code for session
+  const { searchParams } = new URL(request.url);
+  const code = searchParams.get('code');
+
+  if (!code) {
+    return NextResponse.redirect(new URL('/login?error=missing_code', origin));
+  }
+
+  try {
+    const supabase = createServerSupabaseClient();
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
-      console.error('Error exchanging code for session:', error);
-      return NextResponse.redirect(new URL('/login?error=auth_failed', request.url));
+      console.error('Supabase OAuth code exchange failed:', {
+        message: error.message,
+        status: error.status,
+        code: error.code,
+      });
+      return NextResponse.redirect(new URL('/login?error=auth_failed', origin));
     }
 
-    // ============================================
-    // CHECK IF USER EXISTS IN DATABASE
-    // ============================================
-
     if (data.session?.user) {
-      const discordId = data.session.user.id;
-      const username = data.session.user.user_metadata?.user_name || data.session.user.email || 'User';
-      const discriminator = data.session.user.user_metadata?.user_discriminator || '0';
-      const avatar = data.session.user.user_metadata?.avatar_url || data.session.user.user_metadata?.picture || null;
+      const authUserId = data.session.user.id;
+      const metadata = data.session.user.user_metadata || {};
+      const username = metadata.user_name || metadata.full_name || data.session.user.email || 'User';
+      const discriminator = metadata.user_discriminator || '0';
+      const avatar = metadata.avatar_url || metadata.picture || null;
 
-      // Check if user profile exists
       const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('discord_id', discordId)
-        .single();
+        .eq('discord_id', authUserId)
+        .maybeSingle();
 
-      // Create user profile if it doesn't exist
-      if (!profile && profileError?.code === 'PGRST116') {
+      if (!profile && !profileError) {
         const { error: createError } = await supabase
           .from('user_profiles')
           .insert({
-            discord_id: discordId,
-            username: username,
-            discriminator: discriminator,
-            avatar: avatar,
+            discord_id: authUserId,
+            username,
+            discriminator,
+            avatar,
             cash: 1000,
             net_worth: 1000,
             loan_amount: 0,
@@ -91,18 +85,16 @@ export async function GET(request: Request) {
           });
 
         if (createError) {
-          console.error('Error creating user profile:', createError);
+          console.error('Could not create initial user profile:', createError);
         }
+      } else if (profileError) {
+        console.error('Could not check initial user profile:', profileError);
       }
     }
 
-    // ============================================
-    // REDIRECT TO DASHBOARD
-    // ============================================
-
-    return NextResponse.redirect(new URL('/trading', request.url));
+    return NextResponse.redirect(new URL('/trading', origin));
   } catch (error) {
-    console.error('Error in auth callback:', error);
-    return NextResponse.redirect(new URL('/login?error=server_error', request.url));
+    console.error('Unexpected auth callback error:', error);
+    return NextResponse.redirect(new URL('/login?error=server_error', origin));
   }
 }
