@@ -496,34 +496,37 @@ export interface DiscordGuild {
   permissions: number;
 }
 
-// ============================================
-// EXPORT ALL TYPES
-// ============================================
+/**
+ * Supabase schema definition used by the typed client.
+ * The row/insert/update shapes above are shared with the Discord bot.
+ */
+type DatabaseTable<Row, Insert, Update> = {
+  Row: Row;
+  Insert: Insert;
+  Update: Update;
+  Relationships: any[];
+};
 
-export type {
-  UserProfileRow,
-  UserProfileInsert,
-  UserProfileUpdate,
-  StockRow,
-  StockInsert,
-  StockUpdate,
-  PortfolioRow,
-  PortfolioInsert,
-  PortfolioUpdate,
-  TransactionRow,
-  TransactionInsert,
-  ShopItemRow,
-  ShopItemInsert,
-  InventoryRow,
-  InventoryInsert,
-  InventoryUpdate,
-  MarketEventRow,
-  MarketEventInsert,
-  LoanRow,
-  LoanInsert,
-  LoanUpdate,
-  NotificationRow,
-  NotificationInsert,
-  ManipulationQueueRow,
-  ManipulationQueueInsert,
+export type Database = {
+  public: {
+    Tables: {
+      user_profiles: DatabaseTable<UserProfileRow, UserProfileInsert, UserProfileUpdate>;
+      stocks: DatabaseTable<StockRow, StockInsert, StockUpdate>;
+      portfolios: DatabaseTable<PortfolioRow, PortfolioInsert, PortfolioUpdate>;
+      transactions: DatabaseTable<TransactionRow, TransactionInsert, Partial<TransactionInsert>>;
+      shop_items: DatabaseTable<ShopItemRow, ShopItemInsert, Partial<ShopItemInsert>>;
+      inventories: DatabaseTable<InventoryRow, InventoryInsert, InventoryUpdate>;
+      market_events: DatabaseTable<MarketEventRow, MarketEventInsert, Partial<MarketEventInsert>>;
+      loans: DatabaseTable<LoanRow, LoanInsert, LoanUpdate>;
+      notifications: DatabaseTable<NotificationRow, NotificationInsert, Partial<NotificationInsert>>;
+      manipulation_queue: DatabaseTable<ManipulationQueueRow, ManipulationQueueInsert, Partial<ManipulationQueueInsert>>;
+    };
+    Views: Record<string, never>;
+    Functions: {
+      increment: { Args: { amount: number; column: string }; Returns: number };
+      decrement: { Args: { amount: number; column: string }; Returns: number };
+    };
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
+  };
 };
