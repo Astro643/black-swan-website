@@ -98,9 +98,9 @@ export default async function TradingFloorPage() {
         subscriptions={[
           { table: 'stocks' },
           { table: 'market_events' },
-          { table: 'user_profiles' },
-          { table: 'portfolios', filter: `user_id=eq.${profile.id}` },
-          { table: 'transactions', filter: `user_id=eq.${profile.id}` },
+          { table: 'user_profiles', event: 'UPDATE', filter: `id=eq.${profile.id}` },
+          { table: 'portfolios', event: 'INSERT', filter: `user_id=eq.${profile.id}` },
+          { table: 'transactions', event: 'INSERT', filter: `user_id=eq.${profile.id}` },
         ]}
       />
       {/* Page Header */}
