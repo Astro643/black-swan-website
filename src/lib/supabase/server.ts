@@ -1,5 +1,5 @@
-import { createServerComponentClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { createServerSupabaseClient } from './wrappers';
 import { NextResponse } from 'next/server';
 
 // ============================================
@@ -7,26 +7,14 @@ import { NextResponse } from 'next/server';
 // For Server Components and Server Actions
 // ============================================
 
-export const createClient = () => {
-  const cookieStore = cookies();
-  
-  return createServerComponentClient({
-    cookies: () => cookieStore,
-  });
-};
+export const createClient = () => createServerSupabaseClient();
 
 // ============================================
 // SERVER ACTIONS CLIENT
 // For Server Actions with proper session handling
 // ============================================
 
-export const createServerActionClient = () => {
-  const cookieStore = cookies();
-  
-  return createServerComponentClient({
-    cookies: () => cookieStore,
-  });
-};
+export const createServerActionClient = () => createServerSupabaseClient();
 
 // ============================================
 // AUTH HELPERS
