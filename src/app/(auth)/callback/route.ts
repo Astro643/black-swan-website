@@ -3,8 +3,7 @@
 // Handles Discord OAuth callback
 // ============================================
 
-import { createRouteHandler } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createServerSupabaseClient } from '@/lib/supabase/wrappers';
 import { NextResponse } from 'next/server';
 
 // ============================================
@@ -40,12 +39,8 @@ export async function GET(request: Request) {
   // ============================================
 
   try {
-    const cookieStore = cookies();
-    
-    // Create Supabase client
-    const supabase = createRouteHandler({
-      cookies: () => cookieStore,
-    });
+    // Create a cookie-aware Supabase server client.
+    const supabase = createServerSupabaseClient();
 
     // Exchange code for session
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
@@ -73,7 +68,7 @@ export async function GET(request: Request) {
         .single();
 
       // Create user profile if it doesn't exist
-      if (!profile && !profileError?.code?.includes('PGRST116')) {
+      if (!profile && profileError?.code === 'PGRST116') {
         const { error: createError } = await supabase
           .from('user_profiles')
           .insert({
