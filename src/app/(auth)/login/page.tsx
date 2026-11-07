@@ -34,7 +34,7 @@ export default async function LoginPage() {
               and
               <Link href="/privacy" className="text-primary hover:underline ml-1">Privacy Policy</Link>
             </p>
-            <p>We request 'identify' and 'guilds' scopes to verify your Discord account</p>
+            <p>We request &apos;identify&apos; and &apos;guilds&apos; scopes to verify your Discord account</p>
           </div>
         </div>
       </div>
