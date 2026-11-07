@@ -103,9 +103,3 @@ function getPageTitle(pathname: string): string {
       return 'Dashboard';
   }
 }
-
-// ============================================
-// EXPORT
-// ============================================
-
-export { Header };
