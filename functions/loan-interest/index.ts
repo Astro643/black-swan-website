@@ -26,7 +26,6 @@ if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-const CRON_SECRET = Deno.env.get('CRON_SECRET') || '';
 
 async function isAuthorizedCronRequest(req: Request): Promise<boolean> {
   if (!CRON_SECRET) return false;
