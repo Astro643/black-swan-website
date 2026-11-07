@@ -301,13 +301,29 @@ export async function POST(request: Request) {
                 const reimbursement = lossAmount * 0.5;
 
                 if (reimbursement > 0) {
-                  await supabase
+                  const { data: bailoutProfile } = await supabase
                     .from('user_profiles')
-                    .update({
-                      cash: supabase.rpc('increment', { amount: reimbursement, column: 'cash' }),
-                      net_worth: supabase.rpc('increment', { amount: reimbursement, column: 'net_worth' }),
-                    })
+                    .select('cash, net_worth')
+                    .eq('id', user_id)
+                    .maybeSingle();
+
+                  if (!bailoutProfile) {
+                    console.warn(`Skipping bailout for ${user_id}: profile was not found.`);
+                    continue;
+                  }
+
+                  const newCash = bailoutProfile.cash + reimbursement;
+                  const newNetWorth = bailoutProfile.net_worth + reimbursement;
+
+                  const { error: bailoutUpdateError } = await supabase
+                    .from('user_profiles')
+                    .update({ cash: newCash, net_worth: newNetWorth })
                     .eq('id', user_id);
+
+                  if (bailoutUpdateError) {
+                    console.error(`Failed to update bailout balance for ${user_id}:`, bailoutUpdateError);
+                    continue;
+                  }
 
                   await supabase
                     .from('transactions')
@@ -319,7 +335,7 @@ export async function POST(request: Request) {
                       price: null,
                       amount: reimbursement,
                       fee: 0,
-                      balance_after: supabase.rpc('select', { column: 'cash' }),
+                      balance_after: newCash,
                       metadata: { eventType: 'BLACK_SWAN', lossAmount, reimbursementRate: 0.5 },
                     });
 
@@ -391,6 +407,12 @@ export async function POST(request: Request) {
               })
               .eq('id', loan.id);
 
+            const { data: borrowerProfile } = await supabase
+              .from('user_profiles')
+              .select('cash')
+              .eq('id', loan.user_id)
+              .maybeSingle();
+
             await supabase
               .from('transactions')
               .insert({
@@ -401,7 +423,7 @@ export async function POST(request: Request) {
                 price: null,
                 amount: interest,
                 fee: 0,
-                balance_after: supabase.rpc('select', { column: 'cash' }),
+                balance_after: borrowerProfile?.cash ?? 0,
                 metadata: { loanId: loan.id, hoursPassed, interestRate: FINANCIAL_CONFIG.LOAN_INTEREST_RATE },
               });
 
